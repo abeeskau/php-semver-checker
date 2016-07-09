@@ -22,6 +22,8 @@ class Reporter {
 	 */
 	protected $fullPath = false;
 
+    private $levelCount = array();
+
 	public function __construct(Report $report)
 	{
 		$this->report = $report;
@@ -42,17 +44,22 @@ class Reporter {
 		$output->writeln(''); // line clear
 		$output->writeln('Suggested semantic versioning change: ' . Level::toString($suggestedChange));
 
-		$contexts = [
-			'class',
-			'function',
-			'interface',
-			'trait',
-		];
-
-		foreach ($contexts as $context) {
+		foreach ($this->getContexts() as $context) {
+            $this->levelCount[$context] = 0;
 			$this->outputReport($output, $this->report, $context);
 		}
 	}
+
+    public function getLevelCount($context = null) {
+        $levelCount = 0;
+        if (isset($context)) {
+        } else {
+            foreach ($this->getContexts() as $context) {
+                $levelCount += $this->levelCount[$context];
+            }
+        }
+        return $levelCount;
+    }
 
 	protected function outputReport(OutputInterface $output, Report $report, $context)
 	{
@@ -80,6 +87,7 @@ class Reporter {
 			foreach ($reportForLevel as $operation) {
 				$table->addRow([Level::toString($level), $this->getLocation($operation), $operation->getTarget(), $operation->getReason(), $operation->getCode()]);
 			}
+            $this->levelCount[$context]++;
 		}
 		$table->render();
 	}
@@ -94,5 +102,15 @@ class Reporter {
 			$location = str_replace($this->cwd . DIRECTORY_SEPARATOR, '', $fullPath);
 		}
 		return $location . '#' . $operation->getLine();
+    }
+
+    private function getContexts() {
+        $contexts = [
+            'class',
+            'function',
+            'interface',
+            'trait',
+        ];
+        return $contexts;
 	}
 }
